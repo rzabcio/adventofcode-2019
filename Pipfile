@@ -3,6 +3,7 @@ pytest = "*"
 
 [packages]
 fire = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.9"

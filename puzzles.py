@@ -1,8 +1,8 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
+import json
 import fire
-import functools
 import logging
 import os
 
@@ -74,7 +74,7 @@ class IntcodeComputer(object):
     originalProgram = None
     program = None
 
-    def __init__(self, programFile='input-day2-intcode-program.txt'):
+    def __init__(self, programFile='input-data/input-day2-intcode-program.txt'):
         self.originalProgram = list(map(int, open(programFile).readline().split(',')))
         logging.info("IntcodeComputer")
 
@@ -107,12 +107,97 @@ class IntcodeComputer(object):
             yield self.program[i:i+commandSize]
 
 
+class WireBox(object):
+    info = None
+    wireNo = None
+    coord = None
+    steps = None
+    box = None
+
+    def __init__(self, descFile='input-data/input-day3-wires.txt'):
+        self.info = list(map(lambda line: line.strip().split(','), open(descFile).readlines()))
+        self.wireNo = 0
+        self.coord = [0, 0]
+        self.steps = 0
+        self.box = {}
+
+    def construct(self):
+        logging.info("constructing box...")
+        for wire in self.info:
+            self.wireNo += 1
+            self.constructWire(wire)
+
+    def constructWire(self, wire):
+        logging.info("             wire %s..." % self.wireNo)
+        self.coord = [0, 0]
+        self.steps = 0
+        for path in wire:
+            self.constructPath(path)
+
+    def constructPath(self, path):
+        axis = 0 if path[0] in ['R', 'L'] else 1  # 0->x, 1->y
+        sign = 1 if path[0] in ['U', 'R'] else -1
+        delta = int(path[1:]) * sign
+        for c in range(self.coord[axis]+sign, self.coord[axis]+delta, sign):
+            self.coord[axis] = c
+            # logging.info("  %s" % self.coord)
+            self.addWire(self.coord, axis)
+        self.coord[axis] += sign
+        # logging.info("  %s" % self.coord)
+        self.addWire(self.coord, axis, type='+')
+
+    def addWire(self, coords, axis, type=None):
+        coordsTpl = (coords[0], coords[1])
+        wire = self.box.get(coordsTpl, None)
+        self.steps += 1
+        if wire and wire['no'] != self.wireNo:
+            wire['type'] = 'X'
+        else:
+            wire = {}
+            wire['coords'] = coords
+            wire['type'] = type if type else '|' if axis else '-'
+            wire['no'] = self.wireNo
+            self.box[coordsTpl] = wire
+        if not wire.get('steps_wire_%s' % self.wireNo, None):
+            wire['steps_wire_%s' % self.wireNo] = self.steps
+        wire['steps_total'] = sum([wire.get(x, 0) for x in list(map(lambda x: "steps_wire_%s" % x, range(1, self.wireNo+1)))])
+        # logging.info("wire['steps_wire_%s]=%s, total: %s" % (self.wireNo, wire['steps_wire_%s' % self.wireNo], wire['steps_total']))
+
+    def drawBox(self):
+        xs = set(map(lambda tpl: tpl[0], self.box.keys()))
+        ys = set(map(lambda tpl: tpl[1], self.box.keys()))
+        logging.debug("xs: [%s, %s], ys: [%s,%s]" % (min(xs), max(xs), min(ys), max(ys)))
+        boxDrawing = ""
+        logging.info("===============")
+        for y in range(max(ys), min(ys)-1, -1):
+            for x in range(min(xs), max(xs)+1, 1):
+                type = '.'
+                wire = self.box.get((x, y), None)
+                if x == 0 and y == 0:
+                    type = 'o'
+                elif wire:
+                    type = wire['type']
+                # logging.info("drawing (%s,%s) -> %s" % (x,y,type))
+                boxDrawing += type
+            logging.info(boxDrawing)
+            boxDrawing = ""
+        logging.info("===============")
+
+    def distanceToClosestCrossing(self):
+        logging.info("determining crossings...")
+        crossings = dict(filter(lambda elem: elem[1]['type'] == 'X', self.box.items()))
+        # logging.info("crossings [%s]:\n%s" % (len(crossings), crossings))
+        return min(map(lambda coord: abs(coord[0])+abs(coord[1]), crossings))
+
+    def minStepsToCrossing(self):
+        logging.info("determining crossings...")
+        crossings = dict(filter(lambda elem: elem[1]['type'] == 'X', self.box.items()))
+        # logging.info("crossings [%s]:\n%s" % (len(crossings), crossings))
+        return min(map(lambda crossing: crossing[1]['steps_total'], crossings.items()))
+
+
 # FIRE CLASS ##################################################################
 class Puzzles(object):
-    # --------------------------------------------- tests
-    def test_puzzle1_1(self):
-        assert self.puzzle1_1() == 3406342
-
     # --------------------------------------------- day 1
     def puzzle1_1(self,
                   env='gojira-prod', verbose=False):
@@ -177,11 +262,26 @@ class Puzzles(object):
         return result
 
     # --------------------------------------------- day 2
-    def puzzle3_1(self,
+    def puzzle3_1(self, descFile='input-data/input-day3-wires-test1.txt',
+                  draw=False,
                   env='gojira-prod', verbose=False):
         initLogging(debug=verbose)
+        wirebox = WireBox(descFile=descFile)
+        wirebox.construct()
+        if draw:
+            wirebox.drawBox()
+        result = wirebox.distanceToClosestCrossing()
+        return result
 
-        result = 0
+    def puzzle3_2(self, descFile='input-data/input-day3-wires-test1.txt',
+                  draw=False,
+                  env='gojira-prod', verbose=False):
+        initLogging(debug=verbose)
+        wirebox = WireBox(descFile=descFile)
+        wirebox.construct()
+        if draw:
+            wirebox.drawBox()
+        result = wirebox.minStepsToCrossing()
         return result
 
     # --------------------------------------------- tests only
