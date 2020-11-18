@@ -3,6 +3,7 @@
 
 import json
 import fire
+import functools
 import logging
 import os
 
@@ -196,6 +197,51 @@ class WireBox(object):
         return min(map(lambda crossing: crossing[1]['steps_total'], crossings.items()))
 
 
+class PasswordBreaker(object):
+    def __init__(self, start=0, end=999999):
+        self.start = start
+        self.end = end
+
+    def passwords1(self):
+        for passwd in range(self.start, self.end+1):
+            passwdStr = str(passwd)
+            if not self.hasDouble(passwdStr):
+                continue
+            if not self.hasNoLoweringNumbers(passwdStr):
+                continue
+            yield passwd
+
+    def passwords2(self):
+        for passwd in range(self.start, self.end+1):
+            passwdStr = str(passwd)
+            if not self.hasDouble(passwdStr):
+                continue
+            if not self.hasNoLoweringNumbers(passwdStr):
+                continue
+            if not self.hasOnlyDoublesRepeating(passwdStr):
+                continue
+            yield passwd
+
+    def hasDouble(self, passwdStr):
+        uniqueDigits = list(set(list(passwdStr)))
+        return len(uniqueDigits) < len(passwdStr)
+
+    def hasNoLoweringNumbers(self, passwdStr):
+        passwdStrNumbersList = list(passwdStr)
+        passwdStrNumbersList.sort()
+        passwdStrSorted = "".join(passwdStrNumbersList)
+        return passwdStr == passwdStrSorted
+
+    def hasOnlyDoublesRepeating(self, passwdStr):
+        passwdDigits = list(map(lambda s: int(s), list(passwdStr)))
+        digitCounts = [0] * 10
+        for digit in range(0, 10):
+            for passwdDigit in passwdDigits:
+                if digit == passwdDigit:
+                    digitCounts[digit] += 1
+        return any(map(lambda count: count == 2, digitCounts))
+
+
 # FIRE CLASS ##################################################################
 class Puzzles(object):
     # --------------------------------------------- day 1
@@ -282,6 +328,21 @@ class Puzzles(object):
         if draw:
             wirebox.drawBox()
         result = wirebox.minStepsToCrossing()
+        return result
+
+    # --------------------------------------------- day 2
+    def puzzle4_1(self, start=231832, end=767346,
+                  env='gojira-prod', verbose=False):
+        initLogging(debug=verbose)
+        breaker = PasswordBreaker(start=start, end=end)
+        result = len(list(breaker.passwords1()))
+        return result
+
+    def puzzle4_2(self, start=231832, end=767346,
+                  env='gojira-prod', verbose=False):
+        initLogging(debug=verbose)
+        breaker = PasswordBreaker(start=start, end=end)
+        result = len(list(breaker.passwords2()))
         return result
 
     # --------------------------------------------- tests only
