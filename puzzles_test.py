@@ -44,4 +44,24 @@ class TestPuzzles(object):
         assert 1 == Puzzles().puzzle4_2(start=112222, end=112222)
 
     def test_puzzle5_1(self):
-        assert 7839346 == Puzzles().puzzle5_1(system_id=1)
+        assert 7839346 == Puzzles().puzzle5_1(1)
+
+    def test_puzzle5_2(self):
+        assert 1 == Puzzles().puzzle5_2(8, programFile='input-data/input-day5-intcode-test2-eq8.txt')
+        assert 0 == Puzzles().puzzle5_2(1, programFile='input-data/input-day5-intcode-test2-eq8.txt')
+        assert 1 == Puzzles().puzzle5_2(8, programFile='input-data/input-day5-intcode-test2-eq8im.txt')
+        assert 0 == Puzzles().puzzle5_2(1, programFile='input-data/input-day5-intcode-test2-eq8im.txt')
+
+        assert 1 == Puzzles().puzzle5_2(7, programFile='input-data/input-day5-intcode-test2-le8.txt')
+        assert 0 == Puzzles().puzzle5_2(8, programFile='input-data/input-day5-intcode-test2-le8.txt')
+        assert 1 == Puzzles().puzzle5_2(7, programFile='input-data/input-day5-intcode-test2-le8im.txt')
+        assert 0 == Puzzles().puzzle5_2(8, programFile='input-data/input-day5-intcode-test2-le8im.txt')
+
+        assert 0 == Puzzles().puzzle5_2(0, programFile='input-data/input-day5-intcode-test3-zero1.txt')
+        assert 1 == Puzzles().puzzle5_2(9, programFile='input-data/input-day5-intcode-test3-zero1.txt')
+        assert 0 == Puzzles().puzzle5_2(0, programFile='input-data/input-day5-intcode-test3-zero2.txt')
+        assert 1 == Puzzles().puzzle5_2(-2, programFile='input-data/input-day5-intcode-test3-zero2.txt')
+
+        assert 999 == Puzzles().puzzle5_2(7, programFile='input-data/input-day5-intcode-test4-compare8.txt')
+        assert 1000 == Puzzles().puzzle5_2(8, programFile='input-data/input-day5-intcode-test4-compare8.txt')
+        assert 1001 == Puzzles().puzzle5_2(9, programFile='input-data/input-day5-intcode-test4-compare8.txt')

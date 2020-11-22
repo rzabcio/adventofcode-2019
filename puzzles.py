@@ -74,10 +74,10 @@ def calcFuelForModuleAndFuel(x):
 class IntcodeComputer(object):
     originalProgram = None
     program = None
+    pos = 0
 
     def __init__(self, programFile='input-data/input-day2-intcode-program.txt'):
         self.originalProgram = list(map(int, open(programFile).readline().split(',')))
-        logging.info("IntcodeComputer")
 
     def findInput(self, result):
         for noun in range(0, 99):
@@ -88,6 +88,7 @@ class IntcodeComputer(object):
 
     def runProgram(self, noun=None, verb=None):
         self.program = self.originalProgram.copy()
+        self.pos = 0
         self.program[1] = noun
         self.program[2] = verb
         for command in self.commandGen():
@@ -103,7 +104,7 @@ class IntcodeComputer(object):
         return self.output
 
     def runCommand(self, command):
-        # logging.info("command: %s" % command)
+        logging.debug("---- %s" % command)
         if command.opcode == 1:
             logging.debug("ADD: %s + %s = %s -> [%s]" % (command.vals[0], command.vals[1], command.vals[0] + command.vals[1], command.pos))
             self.program[command.pos] = command.vals[0] + command.vals[1]
@@ -114,18 +115,29 @@ class IntcodeComputer(object):
             logging.debug("INP: %s -> [%s]" % (self.input, command.pos))
             self.program[command.pos] = self.input
         elif command.opcode == 4:
-            logging.debug("OUT: [%s] -> %s" % (command.pos, self.program[command.pos]))
-            self.output = self.program[command.pos]
+            logging.debug("OUT: [%s] -> %s" % (command.pos, command.vals[0]))
+            self.output = command.vals[0]
+        elif command.opcode == 5:
+            logging.debug("JIT: %s: => [%s]" % (command.vals[0] != 0, command.vals[1]))
+            self.pos = command.vals[1] if command.vals[0] != 0 else self.pos + len(command)
+        elif command.opcode == 6:
+            logging.debug("JIF: %s: => [%s]" % (command.vals[0] == 0, command.vals[1]))
+            self.pos = command.vals[1] if command.vals[0] == 0 else self.pos + len(command)
+        elif command.opcode == 7:
+            logging.debug("ZLS: %s: %s -> [%s]" % (command.vals[0] < command.vals[1], 1, command.pos))
+            self.program[command.pos] = 1 if command.vals[0] < command.vals[1] else 0
+        elif command.opcode == 8:
+            logging.debug("ZEQ: %s: %s -> [%s]" % (command.vals[0] == command.vals[1], 1, command.pos))
+            self.program[command.pos] = 1 if command.vals[0] == command.vals[1] else 0
         else:
             return False
 
     def commandGen(self):
-        command = None
-        i = 0
-        while not command or len(command) > 1:
-            command = IntcodeCommand(self.program, i)
+        command = [0, 0]
+        while len(command) > 1:
+            command = IntcodeCommand(self.program, self.pos)
             yield command
-            i += len(command)
+            self.pos += len(command) if command.opcode not in [5, 6] else 0
 
     def commandSize(self, opcode):
         if opcode in [1, 2]:
@@ -137,7 +149,10 @@ class IntcodeComputer(object):
 
 
 class IntcodeCommand(object):
-    def __init__(self, command, start_index=0):
+    def __init__(self, command=None, start_index=0):
+        if not command:
+            self.opcode = 0
+            return
         self.len = None
         self.opcode = command[start_index] % 100
         self.params = [int(command[start_index]/100) % 10, int(command[start_index]/1000) % 10, int(command[start_index]/10000) % 10]
@@ -145,15 +160,17 @@ class IntcodeCommand(object):
         self.pos = None
         self.vals = []
         if len(self) > 1:
-            self.pos = self.args[-1]
             for i in range(0, len(self)-1):
                 self.vals.append(self.args[i] if self.params[i] else command[self.args[i]])  # 0 - position, 1 - immediate
+            self.pos = self.args[-1]
         self.command = command[start_index:start_index+len(self)]
 
     def __len__(self):
         if not self.len:
-            if self.opcode in [1, 2]:
+            if self.opcode in [1, 2, 7, 8]:
                 self.len = 4
+            elif self.opcode in [5, 6]:
+                self.len = 3
             elif self.opcode in [3, 4]:
                 self.len = 2
             else:
@@ -402,20 +419,20 @@ class Puzzles(object):
         return result
 
     # --------------------------------------------- day 5
-    def puzzle5_1(self, system_id=1,
+    def puzzle5_1(self, input,
                   programFile='input-data/input-day5-intcode-program.txt',
                   env='gojira-prod', verbose=False):
         initLogging(debug=verbose)
         computer = IntcodeComputer(programFile=programFile)
-        result = computer.runTestProgram(system_id=system_id)
+        result = computer.runTestProgram(system_id=input)
         return result
 
-    def puzzle5_2(self, system_id=1,
+    def puzzle5_2(self, input,
                   programFile='input-data/input-day5-intcode-program.txt',
                   env='gojira-prod', verbose=False):
         initLogging(debug=verbose)
         computer = IntcodeComputer(programFile=programFile)
-        result = computer.runTestProgram(system_id=system_id)
+        result = computer.runTestProgram(system_id=input)
         return result
 
     # --------------------------------------------- tests only
