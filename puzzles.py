@@ -86,7 +86,7 @@ class IntcodeComputer(object):
                     return noun * 100 + verb
         return None
 
-    def runProgram(self, noun, verb):
+    def runProgram(self, noun=None, verb=None):
         self.program = self.originalProgram.copy()
         self.program[1] = noun
         self.program[2] = verb
@@ -94,18 +94,74 @@ class IntcodeComputer(object):
             self.runCommand(command)
         return self.program[0]
 
+    def runTestProgram(self, system_id=1):
+        self.program = self.originalProgram.copy()
+        self.input = system_id
+        self.output = 0
+        for command in self.commandGen():
+            self.runCommand(command)
+        return self.output
+
     def runCommand(self, command):
-        if command[0] == 1:
-            self.program[command[3]] = self.program[command[1]] + self.program[command[2]]
-        elif command[0] == 2:
-            self.program[command[3]] = self.program[command[1]] * self.program[command[2]]
+        # logging.info("command: %s" % command)
+        if command.opcode == 1:
+            logging.debug("ADD: %s + %s = %s -> [%s]" % (command.vals[0], command.vals[1], command.vals[0] + command.vals[1], command.pos))
+            self.program[command.pos] = command.vals[0] + command.vals[1]
+        elif command.opcode == 2:
+            logging.debug("MUL: %s * %s = %s -> [%s]" % (command.vals[0], command.vals[1], command.vals[0] * command.vals[1], command.pos))
+            self.program[command.pos] = command.vals[0] * command.vals[1]
+        elif command.opcode == 3:
+            logging.debug("INP: %s -> [%s]" % (self.input, command.pos))
+            self.program[command.pos] = self.input
+        elif command.opcode == 4:
+            logging.debug("OUT: [%s] -> %s" % (command.pos, self.program[command.pos]))
+            self.output = self.program[command.pos]
         else:
             return False
 
     def commandGen(self):
-        commandSize = 4
-        for i in range(0, len(self.program), commandSize):
-            yield self.program[i:i+commandSize]
+        command = None
+        i = 0
+        while not command or len(command) > 1:
+            command = IntcodeCommand(self.program, i)
+            yield command
+            i += len(command)
+
+    def commandSize(self, opcode):
+        if opcode in [1, 2]:
+            return 4
+        if opcode in [3, 4]:
+            return 2
+        else:
+            return 1
+
+
+class IntcodeCommand(object):
+    def __init__(self, command, start_index=0):
+        self.len = None
+        self.opcode = command[start_index] % 100
+        self.params = [int(command[start_index]/100) % 10, int(command[start_index]/1000) % 10, int(command[start_index]/10000) % 10]
+        self.args = command[start_index+1:start_index+len(self)]
+        self.pos = None
+        self.vals = []
+        if len(self) > 1:
+            self.pos = self.args[-1]
+            for i in range(0, len(self)-1):
+                self.vals.append(self.args[i] if self.params[i] else command[self.args[i]])  # 0 - position, 1 - immediate
+        self.command = command[start_index:start_index+len(self)]
+
+    def __len__(self):
+        if not self.len:
+            if self.opcode in [1, 2]:
+                self.len = 4
+            elif self.opcode in [3, 4]:
+                self.len = 2
+            else:
+                self.len = 1
+        return self.len
+
+    def __str__(self):
+        return "%s - opcode: %s, params: %s -> args: %s -> vals: %s => pos: %s" % (self.command, self.opcode, self.params, self.args, self.vals, self.pos)
 
 
 class WireBox(object):
@@ -307,7 +363,7 @@ class Puzzles(object):
         result = computer.findInput(result)
         return result
 
-    # --------------------------------------------- day 2
+    # --------------------------------------------- day 3
     def puzzle3_1(self, descFile='input-data/input-day3-wires-test1.txt',
                   draw=False,
                   env='gojira-prod', verbose=False):
@@ -330,7 +386,7 @@ class Puzzles(object):
         result = wirebox.minStepsToCrossing()
         return result
 
-    # --------------------------------------------- day 2
+    # --------------------------------------------- day 4
     def puzzle4_1(self, start=231832, end=767346,
                   env='gojira-prod', verbose=False):
         initLogging(debug=verbose)
@@ -343,6 +399,23 @@ class Puzzles(object):
         initLogging(debug=verbose)
         breaker = PasswordBreaker(start=start, end=end)
         result = len(list(breaker.passwords2()))
+        return result
+
+    # --------------------------------------------- day 5
+    def puzzle5_1(self, system_id=1,
+                  programFile='input-data/input-day5-intcode-program.txt',
+                  env='gojira-prod', verbose=False):
+        initLogging(debug=verbose)
+        computer = IntcodeComputer(programFile=programFile)
+        result = computer.runTestProgram(system_id=system_id)
+        return result
+
+    def puzzle5_2(self, system_id=1,
+                  programFile='input-data/input-day5-intcode-program.txt',
+                  env='gojira-prod', verbose=False):
+        initLogging(debug=verbose)
+        computer = IntcodeComputer(programFile=programFile)
+        result = computer.runTestProgram(system_id=system_id)
         return result
 
     # --------------------------------------------- tests only
