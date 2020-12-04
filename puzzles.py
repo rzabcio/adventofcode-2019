@@ -6,6 +6,7 @@ import fire
 import functools
 import logging
 import os
+import pprint
 
 
 # LOGGING UTILS ###############################################################
@@ -315,6 +316,32 @@ class PasswordBreaker(object):
         return any(map(lambda count: count == 2, digitCounts))
 
 
+class PlanetarySystem(object):
+    planets = None
+
+    def __init__(self, orbitsFile='input-files/day6-orbits'):
+        self.planets = {}
+        for orbitLine in fileLineGenerator(orbitsFile):
+            self.addPlanet(orbitLine.split(")")[1], orbitLine.split(")")[0])
+            
+
+    def addPlanet(self, name, inOrbitOf):
+        planet = {'name': name, 'inOrbitOf': inOrbitOf}
+        planet['toCOM'] = 1 + self.planets[planet['inOrbitOf']]['toCOM'] if planet['inOrbitOf'] in self.planets else 1
+        self.planets[planet['name']] = planet
+        self.incOrbitersToCOM(planet)
+        
+    def incOrbitersToCOM(self, planet):
+        for orbiter in list(filter(lambda o: o['inOrbitOf'] == planet['name'], self.planets.values())):
+            orbiter['toCOM'] = 1 + planet['toCOM']
+            self.incOrbitersToCOM(orbiter)
+
+    def countOrbits(self):
+        orbitCount = 0
+        return functools.reduce(lambda toCOM1, toCOM2: toCOM1+toCOM2, list(map(lambda p:p['toCOM'], self.planets.values())))
+
+        
+
 # FIRE CLASS ##################################################################
 class Puzzles(object):
     # --------------------------------------------- day 1
@@ -434,6 +461,14 @@ class Puzzles(object):
         computer = IntcodeComputer(programFile=programFile)
         result = computer.runTestProgram(system_id=input)
         return result
+
+    # --------------------------------------------- day 6
+    def puzzle6_1(self,
+                  orbitsFile='input-data/day6-orbits.txt',
+                  env='gojira-prod', verbose=False):
+        initLogging(debug=verbose)
+        system = PlanetarySystem(orbitsFile)
+        return system.countOrbits()
 
     # --------------------------------------------- tests only
     def test(self,
