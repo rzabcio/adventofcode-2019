@@ -66,6 +66,10 @@ class TestPuzzles(object):
         assert 1000 == Puzzles().puzzle5_2(8, programFile='input-data/input-day5-intcode-test4-compare8.txt')
         assert 1001 == Puzzles().puzzle5_2(9, programFile='input-data/input-day5-intcode-test4-compare8.txt')
 
-    def test_puzzle5_1(self):
+    def test_puzzle6_1(self):
         assert 42 == Puzzles().puzzle6_1('input-data/day6-orbits-test1.txt')
         assert 42 == Puzzles().puzzle6_1('input-data/day6-orbits-test2.txt')
+
+    def test_puzzle6_1(self):
+        assert 4 == Puzzles().puzzle6_2('input-data/day6-orbits-test1-sanyou.txt')
+        assert 4 == Puzzles().puzzle6_2('input-data/day6-orbits-test2-sanyou.txt')

@@ -323,7 +323,12 @@ class PlanetarySystem(object):
         self.planets = {}
         for orbitLine in fileLineGenerator(orbitsFile):
             self.addPlanet(orbitLine.split(")")[1], orbitLine.split(")")[0])
-            
+
+    def planet(self, planet):
+        if isinstance(planet, dict):
+            return self.planets.get(planet['name'], None)
+        else:
+            return self.planets.get("%s" % planet, None)
 
     def addPlanet(self, name, inOrbitOf):
         planet = {'name': name, 'inOrbitOf': inOrbitOf}
@@ -332,6 +337,7 @@ class PlanetarySystem(object):
         self.incOrbitersToCOM(planet)
         
     def incOrbitersToCOM(self, planet):
+        planet = self.planet(planet)
         for orbiter in list(filter(lambda o: o['inOrbitOf'] == planet['name'], self.planets.values())):
             orbiter['toCOM'] = 1 + planet['toCOM']
             self.incOrbitersToCOM(orbiter)
@@ -340,7 +346,40 @@ class PlanetarySystem(object):
         orbitCount = 0
         return functools.reduce(lambda toCOM1, toCOM2: toCOM1+toCOM2, list(map(lambda p:p['toCOM'], self.planets.values())))
 
-        
+    def distBetweenOrbiters(self, orbiter1, orbiter2):
+        return self.distBetweenPlanets(self.planet(orbiter1)['inOrbitOf'], self.planet(orbiter2)['inOrbitOf'])
+
+    def distBetweenPlanets(self, planet1, planet2):
+        return len(self.pathBetweenPlanets(planet1, planet2)) - 1
+
+    def pathBetweenPlanets(self, planet1, planet2):
+        path1 = self.pathToCOM(self.planet(planet1))
+        path2 = self.pathToCOM(self.planet(planet2))
+        commonPath = list(filter(lambda p:p in path2, path1))
+        path1to2 = path1[0:path1.index(commonPath[0])]
+        path2.reverse()
+        path1to2.extend(path2[path2.index(commonPath[0]):])
+        logging.debug("path from %s to %s: %s" % (planet1, planet2, path1to2))
+        return path1to2
+
+    def pathToCOM2(self, planet):
+        planet = self.planet(planet)
+        if not planet:
+            return []
+        pathToCOM = [planet['inOrbitOf']]
+        pathToCOM.extend(self.pathToCOM(planet['inOrbitOf']))
+        return pathToCOM
+
+    def pathToCOM(self, planet):
+        planet = self.planet(planet)
+        if not planet:
+            return ['COM']
+        pathToCOM = [planet['name']]
+        pathToCOM.extend(self.pathToCOM(planet['inOrbitOf']))
+        return pathToCOM
+
+    def pprint(self):
+        return pprint.PrettyPrinter(indent=2).pprint(self.planets)
 
 # FIRE CLASS ##################################################################
 class Puzzles(object):
@@ -469,6 +508,13 @@ class Puzzles(object):
         initLogging(debug=verbose)
         system = PlanetarySystem(orbitsFile)
         return system.countOrbits()
+
+    def puzzle6_2(self,
+                  orbitsFile='input-data/day6-orbits.txt',
+                  env='gojira-prod', verbose=False):
+        initLogging(debug=verbose)
+        system = PlanetarySystem(orbitsFile)
+        return system.distBetweenOrbiters('YOU', 'SAN')
 
     # --------------------------------------------- tests only
     def test(self,
